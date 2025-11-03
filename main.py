@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from firebase import verify_firebase_token
 import ws_routes
 import uvicorn
 from connections import get_all_robots_status, get_robot_status, is_robot_available
@@ -48,6 +49,9 @@ async def root():
 @app.get("/api/robots", tags=["Robots"])
 async def list_robots(token: str = Query(...)):
     """Lấy danh sách tất cả robot và trạng thái của chúng"""
+    if not verify_firebase_token(token):
+        return HTTPException(status_code=401, detail="Invalid token")
+    
     robots_status = get_all_robots_status()
     return {
         "robots": robots_status,
@@ -60,6 +64,9 @@ async def list_robots(token: str = Query(...)):
 @app.get("/api/robots/{robot_id}", tags=["Robots"])
 async def get_robot_info(robot_id: str, token: str = Query(...)):
     """Lấy thông tin chi tiết của một robot"""
+    if not verify_firebase_token(token):
+        return HTTPException(status_code=401, detail="Invalid token")
+    
     status = get_robot_status(robot_id)
     return {
         "robot_id": robot_id,
