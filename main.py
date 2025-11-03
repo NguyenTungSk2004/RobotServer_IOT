@@ -61,24 +61,6 @@ async def list_robots(token: str = Query(...)):
         "disconnected": sum(1 for status in robots_status.values() if status == "disconnected")
     }
 
-@app.get("/api/robots/{robot_id}", tags=["Robots"])
-async def get_robot_info(robot_id: str, token: str = Query(...)):
-    """Lấy thông tin chi tiết của một robot"""
-    if not verify_firebase_token(token):
-        return HTTPException(status_code=401, detail="Invalid token")
-    
-    status = get_robot_status(robot_id)
-    return {
-        "robot_id": robot_id,
-        "status": status,
-        "available_for_control": is_robot_available(robot_id),
-        "description": {
-            "available": "Robot đã kết nối và sẵn sàng điều khiển",
-            "controlled": "Robot đang được điều khiển bởi một client",
-            "disconnected": "Robot chưa kết nối hoặc đã ngắt kết nối"
-        }.get(status, "Trạng thái không xác định")
-    }
-
 if __name__ == "__main__":
     print("Khởi động Robot Server...")
     print("API Documentation: http://localhost:8000/docs")
