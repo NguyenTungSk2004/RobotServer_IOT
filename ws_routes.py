@@ -1,4 +1,3 @@
-import asyncio
 import uuid
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from connections import *

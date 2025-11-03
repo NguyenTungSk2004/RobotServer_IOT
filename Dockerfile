@@ -3,12 +3,13 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Cài các công cụ cần thiết
+# Cài các công cụ cần thiết để build
 RUN apt-get update && apt-get install -y gcc g++ python3-dev
 
 # Cài thư viện cần thiết và Nuitka để biên dịch
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir nuitka
 
 # Copy toàn bộ mã nguồn vào container
 COPY . .
@@ -27,7 +28,7 @@ COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
 # Copy file thực thi đã build (main.bin)
 COPY --from=builder /app/main.bin /app/main
 
-# Expose port
+# Mở port ứng dụng
 EXPOSE 8000
 
 # Chạy file đã biên dịch
