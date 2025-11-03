@@ -1,4 +1,3 @@
-import asyncio
 from dataclasses import dataclass
 
 @dataclass
@@ -11,11 +10,5 @@ class Action:
         return {
             "action_id": self.action_id,
             "intent": self.intent,
-            "params": self.params
+            "params": self.params,
         }
-
-@dataclass
-class PendingAction:
-    data: Action
-    future: asyncio.Future
-    created_at: float

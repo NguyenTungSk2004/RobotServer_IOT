@@ -15,7 +15,7 @@ Nhiệm vụ của bạn là đọc câu lệnh và **trả về JSON hợp lệ
 {
   "actions": [
     {
-      "intent": "<một trong: tien, lui, re_trai, re_phai, quay_trai, quay_phai, kiem_tra_trang_thai>",
+      "intent": "<một trong: tien, lui, re_trai, re_phai, quay_trai, quay_phai, dung_lai, kiem_tra_trang_thai>",
       "params": {
         "<tên_tham_số>": <giá_trị>,
         "unit": "<đơn_vị_nếu_có>"
@@ -39,6 +39,7 @@ Nhiệm vụ của bạn là đọc câu lệnh và **trả về JSON hợp lệ
 1. **Hành động di chuyển:**
    - "đi thẳng", "tiến tới", "tiến lên" → intent: `"tien"`
    - "lùi", "quay lại", "đi lùi" → intent: `"lui"`
+    - "dừng lại", "ngừng", "dừng" → intent: `"dung_lai"`
 
 2. **Hành động rẽ (di chuyển kèm đổi hướng):**
    - "rẽ trái" → intent: `"re_trai"`, tương đương quay 90° trái rồi đi tiếp.
