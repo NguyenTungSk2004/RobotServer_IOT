@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from firebase import verify_firebase_token
 import ws_routes
 import uvicorn
-from connections import get_all_robots_status, get_robot_status, is_robot_available
+from connections import get_all_robots_status
 
 # Model cho request phân tích lệnh
 class CommandRequest(BaseModel):
