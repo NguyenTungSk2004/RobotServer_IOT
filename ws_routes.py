@@ -27,8 +27,14 @@ async def robot_ws(websocket: WebSocket, robot_id: str):
 
                 if not pending_manager.has_pending_actions(robot_id): continue
 
-                next_action, current_pending_action_completed = pending_manager.process_robot_completion(robot_id,action_id)
+                completion_result = pending_manager.process_robot_completion(robot_id, action_id)
 
+                if completion_result is None:
+                    # Không có action nào đang thực thi hoặc action_id không khớp
+                    continue
+
+                next_action, current_pending_action_completed = completion_result
+                
                 robot_response = current_pending_action_completed.to_dict()
                 robot_response["robot_message"] = response_message
                 robot_response["success"] = success
@@ -39,10 +45,9 @@ async def robot_ws(websocket: WebSocket, robot_id: str):
                     await client.send_text(json.dumps(robot_response_message, ensure_ascii=False))
 
                 if next_action:
+                    # Còn action tiếp theo trong chuỗi, gửi cho robot
                     await websocket.send_text(json.dumps(next_action.to_dict()))
-                else:
-                    # Chuỗi hành động hoàn thành, có thể gửi thông báo cho client nếu cần
-                    pass
+                # Nếu next_action là None, chuỗi hành động đã hoàn thành
             except Exception as e:
                 await websocket.send_text(f"Lỗi khi xử lý tin nhắn từ robot {robot_id}: {e}")
 
@@ -53,8 +58,9 @@ async def robot_ws(websocket: WebSocket, robot_id: str):
 
 @router.websocket("/client/{robot_id}")
 async def client_ws(websocket: WebSocket, robot_id: str, token: str):
-    if not verify_firebase_token(token):
-        await websocket.close(code=1008, reason="Invalid token")
+    token_result = verify_firebase_token(token)
+    if not token_result['success']:
+        await websocket.close(code=1008, reason=f"Invalid token: {token_result.get('error', 'Unknown error')}")
         return
     
     # Kiểm tra xem có thể điều khiển robot không

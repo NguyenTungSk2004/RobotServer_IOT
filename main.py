@@ -49,8 +49,9 @@ async def root():
 @app.get("/api/robots", tags=["Robots"])
 async def list_robots(token: str = Query(...)):
     """Lấy danh sách tất cả robot và trạng thái của chúng"""
-    if not verify_firebase_token(token):
-        return HTTPException(status_code=401, detail="Invalid token")
+    token_result = verify_firebase_token(token)
+    if not token_result['success']:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {token_result.get('error', 'Unknown error')}")
     
     robots_status = get_all_robots_status()
     return {
