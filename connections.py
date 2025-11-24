@@ -76,9 +76,7 @@ def get_robot_status(robot_id: str) -> str:
     """
     Lấy trạng thái của robot
     """
-    if robot_id not in robot_connections:
-        return "disconnected"
-    elif robot_id in client_connections:
+    if robot_id in client_connections:
         return "controlled"
     else:
         return "available"

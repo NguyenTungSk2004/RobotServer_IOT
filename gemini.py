@@ -15,7 +15,7 @@ Nhiệm vụ của bạn là đọc câu lệnh và **trả về JSON hợp lệ
 {
   "actions": [
     {
-      "intent": "<một trong: tien, lui, re_trai, re_phai, quay_trai, quay_phai, dung_lai, kiem_tra_trang_thai>",
+      "intent": "<một trong: tien, lui, re_trai, re_phai, dung_lai, nang, ha>",
       "params": {
         "<tên_tham_số>": <giá_trị>,
         "unit": "<đơn_vị_nếu_có>"
@@ -41,20 +41,16 @@ Nhiệm vụ của bạn là đọc câu lệnh và **trả về JSON hợp lệ
    - "lùi", "quay lại", "đi lùi" → intent: `"lui"`
     - "dừng lại", "ngừng", "dừng" → intent: `"dung_lai"`
 
-2. **Hành động rẽ (di chuyển kèm đổi hướng):**
-   - "rẽ trái" → intent: `"re_trai"`, tương đương quay 90° trái rồi đi tiếp.
-   - "rẽ phải" → intent: `"re_phai"`, tương đương quay 90° phải rồi đi tiếp.
+2. **Hành động rẽ (chỉ xoay hướng nhìn, không di chuyển):**
+   - "rẽ trái" → intent: `"re_trai"`
+   - "rẽ phải" → intent: `"re_phai"`
+   - Nếu không có thông tin góc trong "rẽ trái/phải" → mặc định `"angle": 90, "unit": "deg"`.
 
-3. **Hành động quay tại chỗ (chỉ xoay hướng nhìn, không di chuyển):**
-   - "quay trái" → intent: `"quay_trai"`
-   - "quay phải" → intent: `"quay_phai"`
+3. **Hành động nâng/hạ:**
+   - "nâng", "nâng lên" → intent: `"nang"`
+   - "hạ", "hạ xuống" → intent: `"ha"`
 
-4. **Hành động kiểm tra:**
-   - "kiểm tra", "xem trạng thái", "trạng thái hiện tại" → intent: `"kiem_tra_trang_thai"`
-
-5. Nếu không có thông tin góc trong "quay trái/phải" → mặc định `"angle": 90, "unit": "deg"`.
-
-6. Chỉ trả JSON hợp lệ, không thêm giải thích.
+4. Chỉ trả JSON hợp lệ, không thêm giải thích.
 
 ---
 
@@ -79,7 +75,7 @@ Input:
 Output:
 {
   "actions": [
-    { "intent": "quay_phai", "params": { "angle": 45, "unit": "deg" } },
+    { "intent": "re_phai", "params": { "angle": 45, "unit": "deg" } },
     { "intent": "tien", "params": { "distance": 3, "unit": "m" } }
   ]
 }
