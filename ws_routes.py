@@ -77,6 +77,7 @@ async def client_ws(websocket: WebSocket, robot_id: str, token: str):
             except Exception:
                 actions = await gemini_client.send_message(msg)
 
+            print("Phân tích được các hành động:", actions)
             if (len(actions) == 0):
                 await websocket.send_text(json.dumps({
                     "error": "Không phân tích được lệnh",
