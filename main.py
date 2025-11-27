@@ -30,22 +30,6 @@ app.add_middleware(
 # Đăng ký các router
 app.include_router(ws_routes.router, tags=["WebSocket"])
 
-@app.get("/", tags=["General"])
-async def root():
-    """Endpoint chính"""
-    return {
-        "message": "Robot Server đang chạy",
-        "status": "active",
-        "endpoints": {
-            "robots": "/api/robots",
-            "robot_detail": "/api/robots/{robot_id}",
-            "websocket_robot": "/api/ws/robot/{robot_id}",
-            "websocket_client": "/api/ws/client/{robot_id}",
-            "analyze_command": "/api/analyze-command"
-        }
-    }
-
-
 @app.get("/api/robots", tags=["Robots"])
 async def list_robots(token: str = Query(...)):
     """Lấy danh sách tất cả robot và trạng thái của chúng"""
@@ -59,7 +43,6 @@ async def list_robots(token: str = Query(...)):
         "total": len(robots_status),
         "available": sum(1 for status in robots_status.values() if status == "available"),
         "controlled": sum(1 for status in robots_status.values() if status == "controlled"),
-        "disconnected": sum(1 for status in robots_status.values() if status == "disconnected")
     }
 
 if __name__ == "__main__":

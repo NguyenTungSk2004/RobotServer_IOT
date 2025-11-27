@@ -1,5 +1,8 @@
+import asyncio
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
+from websockets.exceptions import ConnectionClosedError 
 import os 
 import json
 
@@ -84,31 +87,8 @@ Phân tích câu lệnh sau:
 
 """
 
-
-TEMPLATE_PROMPT_ROBOT_RESPONSE = """
-Bạn là robot di chuyển nhận lệnh điều khiển đơn.
-
-Yêu cầu:
-- Nếu thực hiện **thành công**, chỉ phản hồi theo mẫu:
-  "OK: <tên hành động> đã hoàn thành"
-  Ví dụ: "OK: tiến 10m", "OK: rẽ phải 90°", "OK: quay trái 80°"
-
-- Nếu **phát hiện vật cản hoặc lỗi**, phản hồi theo mẫu:
-  "ERROR: <mô tả ngắn>"
-  Ví dụ: "ERROR: gặp vật cản phía trước", "ERROR: không thể quay trái"
-
-Không cần thêm ký tự đặc biệt, không xuống dòng, không mô tả dài dòng.
-"""
-
-def analyze_command(user_command: str):
-    full_prompt = TEMPLATE_PROMPT_ANALYZE + user_command
-
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=full_prompt
-    )
-
-    raw_text = response.text.strip()
+def normalize_response(response: str):
+    raw_text = response.strip()
 
     if raw_text.startswith("```"):
         raw_text = raw_text.strip("`")
@@ -122,14 +102,91 @@ def analyze_command(user_command: str):
         print("JSON parse error:", e)
         print("Raw text:", raw_text)
         return None
-     
-def generate_robot_response(robot_msg: dict) -> str:
-    full_prompt = TEMPLATE_PROMPT_ROBOT_RESPONSE + "\nTrạng thái hiện tại:\n" + json.dumps(robot_msg, ensure_ascii=False, indent=2)
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=full_prompt
-    )
+class GeminiLiveClient:
+    """
+    Lớp quản lý phiên Live API của Gemini.
+    """
+    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-live-001"):
+        self.client = genai.Client(api_key=api_key)
+        self.model = model
+        self.session = None
+        self.is_connected = False
+        self._connector = None 
+        self.prompt_template_sent = False
 
-    return response.text
+    async def connect(self):
+        if self.is_connected:
+            print("Kết nối Gemini Live đã được thiết lập.")
+            return
 
+        try:
+            self._connector = self.client.aio.live.connect( 
+                model=self.model,
+                config=types.LiveConnectConfig(response_modalities=["TEXT"]),
+            )
+            self.session = await self._connector.__aenter__()
+            self.is_connected = True
+            print("Kết nối Gemini Live thành công.")
+        except Exception as e:
+            self.is_connected = False
+            self._connector = None # Đảm bảo connector được reset
+            print(f"Lỗi kết nối Gemini Live: {e}")
+            raise 
+
+    async def disconnect(self):
+        if not self.is_connected or not self.session or not self._connector:
+            return
+
+        try:
+            await self._connector.__aexit__(None, None, None)
+            self.is_connected = False
+            self.session = None
+            self._connector = None
+            print("Đã đóng kết nối Gemini Live.")
+        except Exception as e:
+            print(f"Lỗi khi đóng kết nối Gemini Live: {e}")
+
+    async def send_message(self, user_text: str) -> list:
+        if not self.session or not self.is_connected:
+            raise ConnectionError("Không có kết nối Gemini Live. Vui lòng gọi connect() trước.")
+        
+        full_response = ""
+        parts_to_send = []
+
+        if not self.prompt_template_sent:
+            parts_to_send.append(types.Part(text=TEMPLATE_PROMPT_ANALYZE))
+            self.prompt_template_sent = True
+        parts_to_send.append(types.Part(text=user_text))
+
+        try:
+            await self.session.send_client_content(
+                turns=types.Content(
+                    role="user", 
+                    parts=parts_to_send
+                )
+            )
+        except Exception as e:
+            print(f"Lỗi khi gửi nội dung đến Gemini Live: {e}")
+            raise
+
+        try:
+            async for message in self.session.receive():
+                if message.server_content:
+                    server_content = message.server_content
+                    
+                    if server_content.model_turn and server_content.model_turn.parts:
+                        for part in server_content.model_turn.parts:
+                            if part.text:
+                                full_response += part.text
+                                
+                    if server_content.turn_complete:
+                      return normalize_response(full_response)
+                      
+        except ConnectionClosedError as e:
+            await self.disconnect()
+            raise ConnectionError(f"Kết nối Gemini Live bị đóng trong khi nhận tin nhắn: {e}")
+
+async def get_gemini():
+    client = GeminiLiveClient(api_key=API_KEY)
+    return client

@@ -16,7 +16,7 @@ def register_robot(robot_id: str, ws: WebSocket) -> bool:
     robot_connections[robot_id] = ws
     return True
 
-def unregister_robot(robot_id: str):
+async def unregister_robot(robot_id: str):
     """
     Hủy đăng ký robot và client đang điều khiển nó
     """
@@ -26,6 +26,11 @@ def unregister_robot(robot_id: str):
     if robot_id in client_connections:
         client_ws = client_connections.pop(robot_id)
         client_to_robot_mapping.pop(client_ws, None)
+        try:
+            await client_ws.close(code=1000) # Đóng kết nối WebSocket của client
+        except RuntimeError:
+            # Có thể client đã bị ngắt kết nối
+            pass
 
 def register_client(robot_id: str, ws: WebSocket) -> bool:
     """

@@ -16,45 +16,35 @@ async def robot_ws(websocket: WebSocket, robot_id: str):
         return
 
     await websocket.accept()
+    client = None 
     try:
         while True:
+            client = get_client(robot_id)
+            if not client: continue
+
             msg = await websocket.receive_text()
             try:
                 message_data = json.loads(msg)
                 action_id = message_data.get("action_id", "")
-                success = message_data.get("success", False)
                 response_message = message_data.get("message", "")
 
                 if not pending_manager.has_pending_actions(robot_id): continue
 
-                completion_result = pending_manager.process_robot_completion(robot_id, action_id)
+                next_action = pending_manager.process_robot_completion(robot_id, action_id)
 
-                if completion_result is None:
-                    # Không có action nào đang thực thi hoặc action_id không khớp
-                    continue
-
-                next_action, current_pending_action_completed = completion_result
-                
-                robot_response = current_pending_action_completed.to_dict()
-                robot_response["robot_message"] = response_message
-                robot_response["success"] = success
-
-                client = get_client(robot_id)
-                if client:
-                    robot_response_message = gemini.generate_robot_response(robot_response)
-                    await client.send_text(json.dumps(robot_response_message, ensure_ascii=False))
+                await client.send_text(json.dumps(response_message, ensure_ascii=False))
 
                 if next_action:
-                    # Còn action tiếp theo trong chuỗi, gửi cho robot
                     await websocket.send_text(json.dumps(next_action.to_dict()))
-                # Nếu next_action là None, chuỗi hành động đã hoàn thành
+
             except Exception as e:
                 await websocket.send_text(f"Lỗi khi xử lý tin nhắn từ robot {robot_id}: {e}")
 
     except WebSocketDisconnect:
+        if client:
+            await client.send_text(f"Robot {robot_id} disconnected")
         pending_manager.cancel_robot_actions(robot_id)
-        unregister_robot(robot_id)
-        print(f"Robot {robot_id} disconnected")
+        await unregister_robot(robot_id) # Thay đổi này
 
 @router.websocket("/client/{robot_id}")
 async def client_ws(websocket: WebSocket, robot_id: str, token: str):
@@ -69,19 +59,29 @@ async def client_ws(websocket: WebSocket, robot_id: str, token: str):
         return
     
     await websocket.accept()
+    gemini_client = await gemini.get_gemini()
     try:
+        robot = get_robot(robot_id)
+        await gemini_client.connect()
         while True:
-            msg = await websocket.receive_text()
-            robot = get_robot(robot_id)
             if not robot:
                 await websocket.send_text(json.dumps({
                     "error": "Robot không khả dụng",
                     "robot_id": robot_id
-                }), ensure_ascii=False)
-                continue 
+                }, ensure_ascii=False))
+                continue
 
-            actions = gemini.analyze_command(msg)
-            
+            msg = await websocket.receive_text()
+
+            actions = [] # Khởi tạo actions là một list rỗng
+            try:
+                message_json = json.loads(msg)
+                actions = [message_json]
+            except Exception:
+                gemini_response = await gemini_client.send_message(msg)
+                if gemini_response: # Đảm bảo gemini_response không phải là None
+                    actions = gemini_response
+
             if (len(actions) == 0):
                 await websocket.send_text(json.dumps({
                     "error": "Không phân tích được lệnh",
@@ -109,6 +109,9 @@ async def client_ws(websocket: WebSocket, robot_id: str, token: str):
                 }), ensure_ascii=False)
 
     except WebSocketDisconnect:
+        if gemini_client: # Chỉ ngắt kết nối nếu gemini_client đã được khởi tạo
+            await gemini_client.disconnect()
         pending_manager.cancel_robot_actions(robot_id)
         unregister_client(websocket)
-        print(f"Client disconnected from {robot_id}")
+        if robot: # Kiểm tra robot trước khi gửi tin nhắn
+            await robot.send_text(f"Client disconnected from {robot_id}")

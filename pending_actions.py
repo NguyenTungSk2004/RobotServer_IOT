@@ -31,7 +31,7 @@ class PendingActionManager:
         self._robot_current_executing_action[robot_id] = first_action
         return first_action
 
-    def process_robot_completion(self, robot_id: str, completed_action_id: str) -> Optional[Tuple[Action, Action]]:
+    def process_robot_completion(self, robot_id: str, completed_action_id: str) -> Optional[Action]:
         """
         Xử lý thông báo hoàn thành hành động từ robot.
         Trả về hành động tiếp theo trong chuỗi nếu có.
@@ -48,7 +48,7 @@ class PendingActionManager:
             # Lấy hành động tiếp theo từ hàng đợi
             next_action = action_queue.popleft()
             self._robot_current_executing_action[robot_id] = next_action
-            return next_action, current_executing_action
+            return next_action
         else:
             # Chuỗi hành động đã hoàn thành
             self._robot_action_queues.pop(robot_id, None) # Xóa hàng đợi
