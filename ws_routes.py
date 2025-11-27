@@ -14,25 +14,23 @@ async def robot_ws(websocket: WebSocket, robot_id: str):
     if not register_robot(robot_id, websocket):
         await websocket.close(code=1008, reason=f"Robot {robot_id} đã được kết nối")
         return
-
     await websocket.accept()
     client = None 
     try:
         while True:
-            client = get_client(robot_id)
-            if not client: continue
-
             msg = await websocket.receive_text()
             try:
                 message_data = json.loads(msg)
                 action_id = message_data.get("action_id", "")
-                response_message = message_data.get("message", "")
+                response_message = str(message_data.get("message", ""))
 
                 if not pending_manager.has_pending_actions(robot_id): continue
 
                 next_action = pending_manager.process_robot_completion(robot_id, action_id)
 
-                await client.send_text(json.dumps(response_message, ensure_ascii=False))
+                client = get_client(robot_id)
+                if client:
+                    await client.send_text(response_message)
 
                 if next_action:
                     await websocket.send_text(json.dumps(next_action.to_dict()))
