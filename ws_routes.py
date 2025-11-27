@@ -70,6 +70,7 @@ async def client_ws(websocket: WebSocket, robot_id: str, token: str):
 
             msg = await websocket.receive_text()
 
+            print("Nhận được tin nhắn từ client:", msg)
             actions = [] # Khởi tạo actions là một list rỗng
             try:
                 message_json = json.loads(msg)
