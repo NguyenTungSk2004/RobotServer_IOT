@@ -51,7 +51,6 @@ async def client_ws(websocket: WebSocket, robot_id: str, token: str):
         await websocket.close(code=1008, reason=f"Invalid token: {token_result.get('error', 'Unknown error')}")
         return
     
-    # Kiểm tra xem có thể điều khiển robot không
     if not register_client(robot_id, websocket):
         await websocket.close(code=1008, reason=get_robot_status(robot_id))
         return
@@ -76,9 +75,7 @@ async def client_ws(websocket: WebSocket, robot_id: str, token: str):
                 message_json = json.loads(msg)
                 actions = [message_json]
             except Exception:
-                gemini_response = await gemini_client.send_message(msg)
-                if gemini_response: # Đảm bảo gemini_response không phải là None
-                    actions = gemini_response
+                actions = await gemini_client.send_message(msg)
 
             if (len(actions) == 0):
                 await websocket.send_text(json.dumps({

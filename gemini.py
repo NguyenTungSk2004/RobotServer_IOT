@@ -101,7 +101,7 @@ def normalize_response(response: str):
     except json.JSONDecodeError as e:
         print("JSON parse error:", e)
         print("Raw text:", raw_text)
-        return None
+        return []
 
 class GeminiLiveClient:
     """
