@@ -1,15 +1,9 @@
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from firebase import verify_firebase_token
 import ws_routes
 import uvicorn
 from connections import get_all_robots_status
-
-# Model cho request phân tích lệnh
-class CommandRequest(BaseModel):
-    command: str
-    token: str
 
 # Khởi tạo FastAPI app
 app = FastAPI(
