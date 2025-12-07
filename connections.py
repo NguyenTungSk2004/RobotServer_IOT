@@ -71,12 +71,6 @@ def get_client(robot_id: str) -> Optional[WebSocket]:
     """
     return client_connections.get(robot_id)
 
-def is_robot_available(robot_id: str) -> bool:
-    """
-    Kiểm tra robot có sẵn để điều khiển không (đã kết nối nhưng chưa có client)
-    """
-    return robot_id in robot_connections and robot_id not in client_connections
-
 def get_robot_status(robot_id: str) -> str:
     """
     Lấy trạng thái của robot
